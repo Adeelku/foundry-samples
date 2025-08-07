@@ -7,7 +7,7 @@ param modelVersion string
 param modelSkuName string
 param modelCapacity int
 
-resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = {
+resource account 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   name: accountName
   location: location
   sku: {
@@ -18,7 +18,6 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = {
     type: 'SystemAssigned'
   }
   properties: {
-    allowProjectManagement: true
     customSubDomainName: accountName
     networkAcls: {
       defaultAction: 'Allow'
@@ -32,7 +31,7 @@ resource account 'Microsoft.CognitiveServices/accounts@2025-04-01-preview' = {
   }
 }
 
-resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-04-01-preview'=  {
+resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01'=  {
   parent: account
   name: modelName
   sku : {

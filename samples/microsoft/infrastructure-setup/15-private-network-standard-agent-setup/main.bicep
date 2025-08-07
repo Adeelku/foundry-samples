@@ -18,6 +18,7 @@ Standard Setup Network Secured Steps for main.bicep
     'westus3'
     'westus2'
     'canadacentral'
+    'canadaeast'
   ])
 param location string = 'eastus2'
 
@@ -82,6 +83,9 @@ param azureStorageAccountResourceId string = ''
 @description('The Cosmos DB Account full ARM Resource ID. This is an optional field, and if not provided, the resource will be created.')
 param azureCosmosDBAccountResourceId string = ''
 
+@description('The name of the existing Azure OpenAI resource you want to use for model deployments. Note: This is an optional field.')
+param existingAoaiResourceId string = ''
+
 //New Param for resource group of Private DNS zones
 //@description('Optional: Resource group containing existing private DNS zones. If specified, DNS zones will not be created.')
 //param existingDnsZonesResourceGroup string = ''
@@ -94,7 +98,7 @@ param dnsZoneNames array
 
 
 var projectName = toLower('${firstProjectName}${uniqueSuffix}')
-var cosmosDBName = toLower('${aiServices}${uniqueSuffix}cosmosdb')
+var cosmosDBName = toLower('${aiServices}${uniqueSuffix}cosmosdbn')
 var aiSearchName = toLower('${aiServices}${uniqueSuffix}search')
 var azureStorageName = toLower('${aiServices}${uniqueSuffix}storage')
 
@@ -103,6 +107,8 @@ var storagePassedIn = azureStorageAccountResourceId != ''
 var searchPassedIn = aiSearchResourceId != ''
 var cosmosPassedIn = azureCosmosDBAccountResourceId != ''
 var existingVnetPassedIn = existingVnetResourceId != ''
+var aoaiPassedIn = existingAoaiResourceId != ''
+
 
 
 var acsParts = split(aiSearchResourceId, '/')
@@ -116,6 +122,13 @@ var cosmosDBResourceGroupName = cosmosPassedIn ? cosmosParts[4] : resourceGroup(
 var storageParts = split(azureStorageAccountResourceId, '/')
 var azureStorageSubscriptionId = storagePassedIn ? storageParts[2] : subscription().subscriptionId
 var azureStorageResourceGroupName = storagePassedIn ? storageParts[4] : resourceGroup().name
+
+// If the existing AI OpenAI resource ID is passed in, extract the subscription ID, resource group name, and name
+var existingAoaiResourceIdParts = split(existingAoaiResourceId, '/')
+var aoaiSubscriptionId = aoaiPassedIn ? existingAoaiResourceIdParts[2] : subscription().subscriptionId
+var aoaiResourceGroupName = aoaiPassedIn ? existingAoaiResourceIdParts[4] : resourceGroup().name
+var aoaiName = aoaiPassedIn ? existingAoaiResourceIdParts[8] : 'noAoaiPassedIn'
+
 
 var vnetParts = split(existingVnetResourceId, '/')
 var vnetSubscriptionId = existingVnetPassedIn ? vnetParts[2] : subscription().subscriptionId
@@ -252,10 +265,9 @@ module privateEndpointAndDNS 'modules-network-secured/private-endpoint-and-dns.b
 /*
   Creates a new project (sub-resource of the AI Services account)
 */
-module aiProject 'modules-network-secured/ai-project-identity.bicep' = {
+module aiProject './modules-network-secured/ai-project-identity.bicep' = {
   name: 'ai-${projectName}-${uniqueSuffix}-deployment'
   params: {
-    // workspace organization
     projectName: projectName
     projectDescription: projectDescription
     displayName: displayName
@@ -272,16 +284,18 @@ module aiProject 'modules-network-secured/ai-project-identity.bicep' = {
     azureStorageName: aiDependencies.outputs.azureStorageName
     azureStorageSubscriptionId: aiDependencies.outputs.azureStorageSubscriptionId
     azureStorageResourceGroupName: aiDependencies.outputs.azureStorageResourceGroupName
-    // dependent resources
+
+    aoaiPassedIn: aoaiPassedIn
+    existingAoaiName: aoaiName
+    existingAoaiSubscriptionId: aoaiSubscriptionId
+    existingAoaiResourceGroupName: aoaiResourceGroupName
+
     accountName: aiAccount.outputs.accountName
   }
-  dependsOn: [
-     privateEndpointAndDNS
-     cosmosDB
-     aiSearch
-     storage
-  ]
 }
+
+
+
 
 module formatProjectWorkspaceId 'modules-network-secured/format-project-workspace-id.bicep' = {
   name: 'format-project-workspace-id-${uniqueSuffix}-deployment'

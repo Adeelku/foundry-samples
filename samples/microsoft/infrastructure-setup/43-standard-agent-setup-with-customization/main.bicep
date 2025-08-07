@@ -25,7 +25,7 @@ param location string = 'westus'
 
 @maxLength(9)
 @description('The name of the Azure AI Foundry resource.')
-param aiFoundryName string = 'foundy'
+param aiFoundryName string = 'sobfndry'
 
 @description('Name for your foundry project resource.')
 param foundryProjectName string = 'project'
@@ -70,7 +70,7 @@ param accountCapHost string = 'caphostacc'
 
 // Create a short, unique suffix, that will be unique to each resource group
 param deploymentTimestamp string = utcNow('yyyyMMddHHmmss')
-var uniqueSuffix = substring(uniqueString('${resourceGroup().id}-${deploymentTimestamp}'), 0, 4)
+var uniqueSuffix = substring(uniqueString('${resourceGroup().id}-${deploymentTimestamp}-${aiFoundryName}'), 0, 4)
 var accountName = toLower('${aiFoundryName}${uniqueSuffix}')
 var projectName = toLower('${foundryProjectName}${uniqueSuffix}')
 
